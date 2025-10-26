@@ -1,20 +1,21 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const ComplianceService = require('../compliance/complianceService');
+import Stripe from 'stripe';
+import axios from 'axios';
 
 class StripeIntegration {
   constructor() {
-    this.compliance = new ComplianceService();
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    this.webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   }
 
   async createPaymentIntent(amount, currency, paymentMethod, customerData) {
-    // Compliance check
-    await this.compliance.validatePayment(amount, currency, customerData.region);
-    
-    // Anti-fraud check
-    await this.antiFraudCheck(customerData, amount);
-    
     try {
-      const paymentIntent = await stripe.paymentIntents.create({
+      // Validate amount and currency
+      if (amount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
+      // Create payment intent
+      const paymentIntent = await this.stripe.paymentIntents.create({
         amount: this.convertToCents(amount),
         currency: currency.toLowerCase(),
         payment_method: paymentMethod,
@@ -29,7 +30,7 @@ class StripeIntegration {
       });
 
       // Log transaction for compliance
-      await this.compliance.logTransaction({
+      await this.logTransaction({
         paymentIntentId: paymentIntent.id,
         amount,
         currency,
@@ -37,43 +38,82 @@ class StripeIntegration {
         timestamp: new Date()
       });
 
-      return paymentIntent;
+      return {
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      };
     } catch (error) {
+      console.error('Stripe payment error:', error);
       throw new Error(`Payment failed: ${error.message}`);
     }
   }
 
-  async antiFraudCheck(customerData, amount) {
-    // Implement fraud detection logic
-    const riskScore = await this.calculateRiskScore(customerData, amount);
-    
-    if (riskScore > 0.8) {
-      throw new Error('Transaction flagged for manual review');
+  async handleWebhook(payload, signature) {
+    try {
+      const event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        this.webhookSecret
+      );
+
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          await this.handlePaymentSuccess(event.data.object);
+          break;
+        case 'payment_intent.payment_failed':
+          await this.handlePaymentFailure(event.data.object);
+          break;
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Webhook error:', error);
+      throw new Error(`Webhook handler failed: ${error.message}`);
     }
-    
-    return true;
   }
 
-  async calculateRiskScore(customerData, amount) {
-    // Simplified risk calculation
-    let score = 0;
+  async handlePaymentSuccess(paymentIntent) {
+    // Update order status in database
+    await this.updateOrderStatus(paymentIntent.metadata.order_id, 'completed');
     
-    // Amount-based risk
-    if (amount > 10000) score += 0.3;
+    // Send confirmation email
+    await this.sendConfirmationEmail(paymentIntent);
+  }
+
+  async handlePaymentFailure(paymentIntent) {
+    // Update order status in database
+    await this.updateOrderStatus(paymentIntent.metadata.order_id, 'failed');
     
-    // Region-based risk
-    const highRiskRegions = ['certain_regions'];
-    if (highRiskRegions.includes(customerData.region)) score += 0.2;
-    
-    // Behavior-based risk
-    // Add more sophisticated checks here
-    
-    return Math.min(score, 1);
+    // Notify customer
+    await this.sendFailureNotification(paymentIntent);
   }
 
   convertToCents(amount) {
     return Math.round(amount * 100);
   }
+
+  async logTransaction(transactionData) {
+    // Implementation for transaction logging
+    console.log('Transaction logged:', transactionData);
+  }
+
+  async updateOrderStatus(orderId, status) {
+    // Implementation for updating order status
+    console.log(`Order ${orderId} status updated to: ${status}`);
+  }
+
+  async sendConfirmationEmail(paymentIntent) {
+    // Implementation for sending confirmation email
+    console.log('Confirmation email sent for:', paymentIntent.id);
+  }
+
+  async sendFailureNotification(paymentIntent) {
+    // Implementation for sending failure notification
+    console.log('Failure notification sent for:', paymentIntent.id);
+  }
 }
 
-module.exports = StripeIntegration;
+export default StripeIntegration;
