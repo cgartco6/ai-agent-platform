@@ -1,0 +1,34 @@
+name: Model Training
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly training
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  train-models:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        cd ml-service
+        pip install -r requirements.txt
+        
+    - name: Train models
+      run: |
+        cd ml-service
+        python src/model-training/trainer.py
+        
+    - name: Upload model artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-models
+        path: ml-service/models/
