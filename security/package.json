@@ -1,0 +1,24 @@
+{
+  "name": "security-service",
+  "version": "1.0.0",
+  "description": "Security and authentication service",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "helmet": "^6.0.1",
+    "express-rate-limit": "^6.7.0",
+    "validator": "^13.9.0",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
