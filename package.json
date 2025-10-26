@@ -1,0 +1,51 @@
+{
+  "name": "ai-commerce-platform",
+  "version": "1.0.0",
+  "description": "AI-powered e-commerce platform with advanced features",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ml-service\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:ml-service": "cd ml-service && python src/app.py",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && npm test",
+    "lint": "eslint . --ext js,jsx,ts,tsx",
+    "lint:fix": "eslint . --ext js,jsx,ts,tsx --fix",
+    "security-scan": "npm audit --audit-level high",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "eslint": "^8.34.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "workspaces": [
+    "frontend",
+    "backend",
+    "ml-service",
+    "graphics-studio",
+    "content-creator",
+    "payment-service",
+    "security",
+    "customer-support",
+    "compliance"
+  ],
+  "keywords": [
+    "ai",
+    "ecommerce",
+    "machine-learning",
+    "react",
+    "nodejs",
+    "python"
+  ],
+  "author": "AI Commerce Team",
+  "license": "MIT"
+}
